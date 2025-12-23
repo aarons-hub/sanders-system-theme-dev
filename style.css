@@ -7,25 +7,6 @@ Template: twentytwentyfive
 Text Domain: twentytwentyfivechild
 */
 
-/* .trading-hours-container {
-	position: relative;
-}
-.trading-hours-container .trading-hours-modal {
-	position: absolute;
-	top: 100%;
-	left: 0;
-	width: 140%;
-	background-color: #333;
-	padding: 10px;
-	color: #fff;
-	text-align: center;
-	margin-top: 10px;
-	display: none;
-}
-.trading-hours-container:hover .trading-hours-modal {
-	display: block;
-	z-index: 10;
-} */
 a {
 	text-underline-offset: 0.6ch !important;
 }
