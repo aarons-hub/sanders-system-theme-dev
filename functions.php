@@ -900,11 +900,11 @@ function sanders_system_register_required_plugins() {
       'required' => false,
       'force_activation'   => false,
     ),
-    array( 
-      'name'     => 'Page Links To', 
-      'slug'     => 'page-links-to', 
-      'required' => false,
-    ),
+    // array( 
+    //   'name'     => 'Page Links To', 
+    //   'slug'     => 'page-links-to', 
+    //   'required' => false,
+    // ),
     array( 
       'name'     => 'Advanced Custom Fields',
       'slug'     => 'advanced-custom-fields', 
