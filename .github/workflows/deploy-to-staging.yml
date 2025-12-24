@@ -19,12 +19,6 @@ jobs:
       contents: read
 
     steps:
-      - name: Clone staging repository
-        uses: actions/checkout@v4
-        with:
-          path: staging
-          fetch-depth: 0
-
       - name: Get staging commit info
         id: staging-commit
         run: |
