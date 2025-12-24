@@ -52,6 +52,11 @@ jobs:
           git config --global credential.helper store
           echo "https://x-access-token:${DEV_REPO_TOKEN}@github.com" > ~/.git-credentials
           git clone https://github.com/${REPO}.git staging
+          CLONE_EXIT_CODE=$?
+          if [ $CLONE_EXIT_CODE -ne 0 ]; then
+            echo "Error: Failed to clone staging repository ${REPO}"
+            exit $CLONE_EXIT_CODE
+          fi
 
       - name: Get staging commit info
         id: staging-commit
