@@ -19,6 +19,39 @@ jobs:
       contents: read
 
     steps:
+      - name: Set staging repository
+        id: prod-repo
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.production_repo }}" ]; then
+            echo "repo=${{ github.event. inputs.production_repo }}" >> $GITHUB_OUTPUT
+          else
+            # Default staging repository
+            echo "repo=${{ vars. PRODUCTION_REPO || 'aarons-hub/sanders-system-theme-staging' }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Remove existing staging directory (if any)
+        run: |
+          if [ -d "staging" ]; then
+            echo "Removing existing staging directory..."
+            rm -rf staging
+          fi
+
+      - name: Clone staging repository
+        env:
+          DEV_REPO_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
+        run: |
+          if [ -z "$DEV_REPO_TOKEN" ]; then
+            echo "Error: DEV_REPO_TOKEN secret is not set"
+            echo "Please configure this secret in repository settings with a PAT that has 'repo' scope"
+            exit 1
+          fi
+
+          REPO="${{ steps.prod-repo.outputs.repo }}"
+
+          # Configure git credential helper to avoid token exposure in process list
+          git config --global credential.helper store
+          echo "https://x-access-token:${DEV_REPO_TOKEN}@github.com" > ~/.git-credentials
+
       - name: Get staging commit info
         id: staging-commit
         run: |
