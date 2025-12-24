@@ -62,8 +62,13 @@ jobs:
         id: staging-commit
         run: |
           cd staging
-          echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "message=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_OUTPUT
+          if git rev-parse --verify HEAD >/dev/null 2>&1; then
+            echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+            echo "message=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_OUTPUT
+          else
+            echo "sha=none" >> $GITHUB_OUTPUT
+            echo "message=No commits yet" >> $GITHUB_OUTPUT
+          fi
 
 
               - name: Deployment summary
