@@ -65,23 +65,6 @@ jobs:
           echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "message=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_OUTPUT
 
-      - name: Set staging repository
-        id: prod-repo
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.production_repo }}" ]; then
-            echo "repo=${{ github.event. inputs.production_repo }}" >> $GITHUB_OUTPUT
-          else
-            # Default staging repository
-            echo "repo=${{ vars. PRODUCTION_REPO || 'aarons-hub/sanders-system-theme-staging' }}" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Remove existing staging directory (if any)
-        run: |
-          if [ -d "staging" ]; then
-            echo "Removing existing staging directory..."
-            rm -rf staging
-          fi
-
       - name: Clone staging repository
         env:
           DEV_REPO_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
