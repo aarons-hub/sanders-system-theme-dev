@@ -61,6 +61,19 @@ jobs:
             exit $CLONE_EXIT_CODE
           fi
 
+      - name: Checkout dev branch
+        uses: actions/checkout@v4
+        with:
+          path: dev
+          fetch-depth: 0
+
+      - name: Mirror dev to staging (delete all except .git)
+        run: |
+          cd staging
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cd ..
+          rsync -av --delete --exclude='.git' dev/ staging/
+
       - name: Get staging commit info
         id: staging-commit
         continue-on-error: true
