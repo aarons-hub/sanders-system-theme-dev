@@ -1,0 +1,209 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      staging_repo:
+        description: "Staging repository (owner/repo)"
+        required: false
+        default: "aarons-hub/sanders-system-theme-staging"
+
+jobs:
+  deploy:
+    name: Deploy Theme to Staging
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout staging repository
+        uses: actions/checkout@v4
+        with:
+          path: staging
+          fetch-depth: 0
+
+      - name: Get staging commit info
+        id: staging-commit
+        run: |
+          cd staging
+          echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "message=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_OUTPUT
+
+      - name: Set staging repository
+        id: prod-repo
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.production_repo }}" ]; then
+            echo "repo=${{ github.event. inputs.production_repo }}" >> $GITHUB_OUTPUT
+          else
+            # Default staging repository
+            echo "repo=${{ vars. PRODUCTION_REPO || 'aarons-hub/sanders-system-theme-staging' }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Clone staging repository
+        env:
+          DEV_REPO_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
+        run: |
+          if [ -z "$DEV_REPO_TOKEN" ]; then
+            echo "Error: DEV_REPO_TOKEN secret is not set"
+            echo "Please configure this secret in repository settings with a PAT that has 'repo' scope"
+            exit 1
+          fi
+
+          REPO="${{ steps.prod-repo.outputs.repo }}"
+
+          # Configure git credential helper to avoid token exposure in process list
+          git config --global credential.helper store
+          echo "https://x-access-token:${DEV_REPO_TOKEN}@github.com" > ~/.git-credentials
+
+          git clone https://github.com/${REPO}.git staging
+
+          if [ $?  -ne 0 ]; then
+            echo "Error: Failed to clone staging repository ${REPO}"
+            echo "Please verify:"
+            echo "  1. The repository exists"
+            echo "  2. The DEV_REPO_TOKEN has access to the repository"
+            echo "  3. The token has 'repo' scope"
+            exit 1
+          fi
+
+      - name: Copy theme files to staging
+        run: |
+          echo "Copying theme files from dev to staging..."
+
+          # Remove existing files in staging (except .git and .github)
+          cd staging
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.github' -exec rm -rf {} +
+
+          # Use rsync for reliable file synchronization
+          cd .. 
+          rsync -av --exclude='.git' --exclude='.github' staging/ staging/
+
+          if [ $? -ne 0 ]; then
+            echo "Error:  Failed to copy files to staging"
+            exit 1
+          fi
+
+          echo "Files copied successfully"
+
+      - name: Commit and push to staging
+        env:
+          PRODUCTION_REPO_TOKEN: ${{ secrets. PRODUCTION_REPO_TOKEN }}
+          STAGING_COMMIT_SHA: ${{ steps.staging-commit.outputs.sha }}
+        run: |
+          cd staging
+
+
+          deploy:
+            name: Deploy Theme to Staging
+            runs-on: ubuntu-latest
+            permissions:
+              contents: read
+
+            steps:
+              - name: Checkout dev repository
+                uses: actions/checkout@v4
+                with:
+                  path: dev
+                  fetch-depth: 0
+
+              - name: Set staging repository
+                id: staging-repo
+                run: |
+                  if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.staging_repo }}" ]; then
+                    echo "repo=${{ github.event.inputs.staging_repo }}" >> $GITHUB_OUTPUT
+                  else
+                    echo "repo=aarons-hub/sanders-system-theme-staging" >> $GITHUB_OUTPUT
+                  fi
+
+              - name: Clone staging repository
+                env:
+                  DEV_REPO_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
+                run: |
+                  if [ -z "$DEV_REPO_TOKEN" ]; then
+                    echo "Error: DEV_REPO_TOKEN secret is not set"
+                    echo "Please configure this secret in repository settings with a PAT that has 'repo' scope"
+                    exit 1
+                  fi
+
+                  REPO="${{ steps.staging-repo.outputs.repo }}"
+
+                  git config --global credential.helper store
+                  echo "https://x-access-token:${DEV_REPO_TOKEN}@github.com" > ~/.git-credentials
+                  git clone https://github.com/${REPO}.git staging
+
+                  if [ $?  -ne 0 ]; then
+                    echo "Error: Failed to clone staging repository ${REPO}"
+                    exit 1
+                  fi
+
+              - name: Get last commit info from dev
+                id: dev-commit
+                run: |
+                  cd dev
+                  echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+                  echo "message=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_OUTPUT
+
+              - name: Copy theme files to staging
+                run: |
+                  echo "Copying theme files from dev to staging..."
+                  rsync -av --exclude='.git' --exclude='.github' dev/ staging/
+                  if [ $? -ne 0 ]; then
+                    echo "Error:  Failed to copy files to staging"
+                    exit 1
+                  fi
+                  echo "Files copied successfully"
+
+              - name: Commit and push to staging
+                env:
+                  DEV_REPO_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
+                  DEV_COMMIT_SHA: ${{ steps.dev-commit.outputs.sha }}
+                run: |
+                  cd staging
+                  git config user.name "GitHub Actions Bot"
+                  git config user.email "actions@github.com"
+                  if [ -z "$(git status --porcelain)" ]; then
+                    echo "No changes to deploy"
+                    exit 0
+                  fi
+                  git add -A
+                  COMMIT_MSG="Deploy from dev - ${DEV_COMMIT_SHA}"
+                  git commit -m "${COMMIT_MSG}"
+                  REMOTE_BRANCHES=$(git ls-remote --heads origin 2>/dev/null | wc -l)
+                  if [ "$REMOTE_BRANCHES" -eq 0 ]; then
+                    git branch -M main
+                    git push -u origin main
+                  else
+                    DEFAULT_BRANCH=$(git remote show origin | grep 'HEAD branch' | cut -d' ' -f5)
+                    if [ -z "$DEFAULT_BRANCH" ]; then
+                      DEFAULT_BRANCH="main"
+                    fi
+                    git push origin HEAD:${DEFAULT_BRANCH}
+                  fi
+                  if [ $? -eq 0 ]; then
+                    echo "Successfully deployed to staging!"
+                    echo "Commit SHA: $(git rev-parse --short HEAD)"
+                  else
+                    echo "Error: Failed to push to staging repository"
+                    exit 1
+                  fi
+
+              - name: Deployment summary
+                if: success()
+                run: |
+                  echo "## Deployment Successful!  :rocket:" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "**Dev Commit:** ${{ steps.dev-commit.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
+                  echo "**Staging Repository:** ${{ steps.staging-repo.outputs.repo }}" >> $GITHUB_STEP_SUMMARY
+                  echo "**Deployed at:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+
+              - name: Deployment failure notification
+                if: failure()
+                run: |
+                  echo "## Deployment Failed :x:" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+                  echo "**Dev Commit:** ${{ steps.dev-commit.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
+                  echo "**Staging Repository:** ${{ steps.staging-repo.outputs.repo }}" >> $GITHUB_STEP_SUMMARY
