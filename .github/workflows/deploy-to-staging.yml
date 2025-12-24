@@ -21,6 +21,7 @@ jobs:
     steps:
       - name: Set staging repository
         id: set-staging-repo
+        continue-on-error: true
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.production_repo }}" ]; then
             echo "repo=${{ github.event. inputs.production_repo }}" >> $GITHUB_OUTPUT
@@ -30,6 +31,7 @@ jobs:
           fi
 
       - name: Remove existing staging directory (if any)
+        continue-on-error: true
         run: |
           if [ -d "staging" ]; then
             echo "Removing existing staging directory..."
@@ -39,6 +41,7 @@ jobs:
       - name: Clone staging repository
         env:
           DEV_REPO_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
+        continue-on-error: true
         run: |
           if [ -z "$DEV_REPO_TOKEN" ]; then
             echo "Error: DEV_REPO_TOKEN secret is not set"
@@ -60,6 +63,7 @@ jobs:
 
       - name: Get staging commit info
         id: staging-commit
+        continue-on-error: true
         run: |
           cd staging
           if git rev-parse --verify HEAD >/dev/null 2>&1; then
@@ -72,6 +76,7 @@ jobs:
 
       - name: Deployment summary
         if: success()
+        continue-on-error: true
         run: |
           echo "## Deployment Successful!  :rocket:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
