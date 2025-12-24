@@ -1,4 +1,4 @@
-name: Deploy to Staging
+name: Deploy to Staging v1.0.0
 
 on:
   push:
@@ -40,6 +40,13 @@ jobs:
           else
             # Default staging repository
             echo "repo=${{ vars. PRODUCTION_REPO || 'aarons-hub/sanders-system-theme-staging' }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Remove existing staging directory (if any)
+        run: |
+          if [ -d "staging" ]; then
+            echo "Removing existing staging directory..."
+            rm -rf staging
           fi
 
       - name: Clone staging repository
