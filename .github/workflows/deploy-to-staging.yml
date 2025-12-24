@@ -19,7 +19,7 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout staging repository
+      - name: Clone staging repository
         uses: actions/checkout@v4
         with:
           path: staging
