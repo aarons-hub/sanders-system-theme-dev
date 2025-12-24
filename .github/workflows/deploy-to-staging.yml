@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Set staging repository
-        id: prod-repo
+        id: set-staging-repo
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.production_repo }}" ]; then
             echo "repo=${{ github.event. inputs.production_repo }}" >> $GITHUB_OUTPUT
