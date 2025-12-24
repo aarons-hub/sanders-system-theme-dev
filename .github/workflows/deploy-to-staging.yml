@@ -46,11 +46,12 @@ jobs:
             exit 1
           fi
 
-          REPO="${{ steps.prod-repo.outputs.repo }}"
+          REPO="${{ steps.set-staging-repo.outputs.repo }}"
 
           # Configure git credential helper to avoid token exposure in process list
           git config --global credential.helper store
           echo "https://x-access-token:${DEV_REPO_TOKEN}@github.com" > ~/.git-credentials
+          git clone https://github.com/${REPO}.git staging
 
       - name: Get staging commit info
         id: staging-commit
