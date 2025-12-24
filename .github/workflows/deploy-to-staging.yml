@@ -65,34 +65,6 @@ jobs:
           echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "message=$(git log -1 --pretty=%B | head -n 1)" >> $GITHUB_OUTPUT
 
-      - name: Clone staging repository
-        env:
-          DEV_REPO_TOKEN: ${{ secrets.DEV_REPO_TOKEN }}
-        run: |
-          if [ -z "$DEV_REPO_TOKEN" ]; then
-            echo "Error: DEV_REPO_TOKEN secret is not set"
-            echo "Please configure this secret in repository settings with a PAT that has 'repo' scope"
-            exit 1
-          fi
-
-          REPO="${{ steps.prod-repo.outputs.repo }}"
-
-          # Configure git credential helper to avoid token exposure in process list
-          git config --global credential.helper store
-          echo "https://x-access-token:${DEV_REPO_TOKEN}@github.com" > ~/.git-credentials
-
-                    if [ -z "$DEFAULT_BRANCH" ]; then
-                      DEFAULT_BRANCH="main"
-                    fi
-                    git push origin HEAD:${DEFAULT_BRANCH}
-                  fi
-                  if [ $? -eq 0 ]; then
-                    echo "Successfully deployed to staging!"
-                    echo "Commit SHA: $(git rev-parse --short HEAD)"
-                  else
-                    echo "Error: Failed to push to staging repository"
-                    exit 1
-                  fi
 
               - name: Deployment summary
                 if: success()
