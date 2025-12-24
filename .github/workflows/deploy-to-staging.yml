@@ -87,3 +87,5 @@ jobs:
           echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
           echo "**Staging Commit:** ${{ steps.staging-commit.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**Staging Repository:** ${{ steps.set-staging-repo.outputs.repo }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow Run:** $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> $GITHUB_STEP_SUMMARY
+          echo "If the commit or repo info is missing, the failure may have occurred before those steps ran." >> $GITHUB_STEP_SUMMARY
